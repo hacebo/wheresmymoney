@@ -30,5 +30,6 @@ module.exports = {
     "import/no-unresolved": 0,
     "max-len": ["error", { "code": 90 }],
     "object-curly-spacing": ["error", "always"],
+    "linebreak-style": ["error", "windows"],
   },
 };
