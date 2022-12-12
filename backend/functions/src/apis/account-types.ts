@@ -15,7 +15,8 @@ export const useAccountTypesApi = (app: Express) => {
       body("name").exists(),
       putAccountTypeAsync);
 
-  app.delete("/account-types",
+  app.delete("/account-types/:id",
+      param("id").exists(),
       deleteAccountTypeAsync);
 };
 
@@ -58,16 +59,20 @@ const postAccountTypeAsync = async (req: Request, res: Response) => {
 const putAccountTypeAsync = async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
-    const { id } = req.params;
+
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
         errors: errors.array(),
       });
     }
+
+    const { id } = req.params;
+
     const accountTypeRef = db.collection("account-types").doc(`${id}`);
-    accountTypeRef.update(req.body);
-    return res.status(200);
+    await accountTypeRef.update(req.body);
+
+    return res.json(req.body);
   } catch (error: any) {
     return res.status(500).json({ error: error.code });
   }
@@ -76,14 +81,22 @@ const putAccountTypeAsync = async (req: Request, res: Response) => {
 
 const deleteAccountTypeAsync = async (req: Request, res: Response) => {
   try {
-    const snapshot = await db.collection("account-types").get();
-    const batch = db.batch();
-    snapshot.forEach((doc: any) => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
-    return res.status(200);
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array(),
+      });
+    }
+    const { id } = req.params;
+    const doc = db.collection("account-types").doc(`${id}`);
+    await doc.delete({ exists: true });
+    return res.json();
   } catch (error: any) {
+    if (error.message.includes("NOT_FOUND")) {
+      return res.status(404).json({ error: "Element not foud." });
+    }
     return res.status(500).json({ error: error.code });
   }
 };
